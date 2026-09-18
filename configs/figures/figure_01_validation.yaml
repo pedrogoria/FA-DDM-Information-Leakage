@@ -1,0 +1,31 @@
+figure:
+  id: figure_01_validation
+  title: Quadrature and Monte Carlo validation
+
+random:
+  seed: 20260918
+
+system:
+  modulation: QPSK
+  number_of_ports: 8
+  aperture_wavelengths: 1.0
+  bob_angle_deg: 0.0
+  eve_angle_deg: 30.0
+  rician_factor_bob: 5.0
+  rician_factor_eve: 5.0
+
+sweep:
+  eve_snr_db: [-10, -5, 0, 5, 10, 15, 20]
+
+quadrature:
+  points_per_axis: 151
+  noise_margin_sigma: 6.0
+
+monte_carlo:
+  number_of_trials: 100000
+
+output:
+  directory: data/results/figure_01_validation
+  dat_file: figure_01_validation.dat
+  pdf_file: figure_01_validation.pdf
+  config_copy: config_used.yaml

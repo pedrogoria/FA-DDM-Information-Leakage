@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+fa-ddm-env/
+
+# PyCharm
+.idea/
+
+# Test and tooling caches
+.pytest_cache/
+.coverage
+
+# Generated data
+# Keep .dat and final figure PDFs, but ignore temporary files.
+data/results/**/tmp/
+*.log
+*.aux
+*.out
+*.synctex.gz
+
+# Operating systems
+.DS_Store
+Thumbs.db

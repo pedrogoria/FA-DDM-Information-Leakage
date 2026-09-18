@@ -1,0 +1,22 @@
+\documentclass[tikz,border=2pt]{standalone}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+
+\begin{document}
+\begin{tikzpicture}
+\begin{axis}[
+    xlabel={Eve-side SNR (dB)},
+    ylabel={Posterior vulnerability},
+    grid=both,
+    legend pos=south east
+]
+% Copy figure_01_validation.dat from data/results/ to Overleaf.
+% \addplot table[x=eve_snr_db,y=vulnerability_quadrature]
+%   {figure_01_validation.dat};
+% \addlegendentry{Quadrature}
+% \addplot table[x=eve_snr_db,y=vulnerability_monte_carlo]
+%   {figure_01_validation.dat};
+% \addlegendentry{Monte Carlo}
+\end{axis}
+\end{tikzpicture}
+\end{document}
