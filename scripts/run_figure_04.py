@@ -119,6 +119,25 @@ def run(config_path="configs/figures/figure_04_finite_snr_bounds.yaml"):
     )
     dat_path = run_directory / output["dat_file"]
     pdf_path = run_directory / output["pdf_file"]
+    for modulation_name in system["modulations"]:
+        key = modulation_key(modulation_name)
+
+        mc_values_array = np.asarray(
+            data["vulnerability_{}_mc".format(key)], dtype=float
+        )
+        lower_values_array = np.asarray(
+            data["vulnerability_{}_ci95_lower".format(key)], dtype=float
+        )
+        upper_values_array = np.asarray(
+            data["vulnerability_{}_ci95_upper".format(key)], dtype=float
+        )
+
+        data["vulnerability_{}_ci95_plus".format(key)] = (
+                upper_values_array - mc_values_array
+        )
+        data["vulnerability_{}_ci95_minus".format(key)] = (
+                mc_values_array - lower_values_array
+        )
     save_dat(data, dat_path, comments=[
         "Experiment: {}".format(output["experiment_name"]),
         "Same channel realization is used for BPSK and QPSK.",
