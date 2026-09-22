@@ -1,22 +1,114 @@
-\documentclass[tikz,border=2pt]{standalone}
+\documentclass{standalone}
+
+\usepackage{tikz}
 \usepackage{pgfplots}
-\pgfplotsset{compat=1.18}
+\usepgfplotslibrary{groupplots}
+\usetikzlibrary{plotmarks,calc,positioning,arrows,shadows}
+\pgfplotsset{compat=newest}
+
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{booktabs}
+\usepackage{siunitx}
+\sisetup{group-separator={.}}
+
+\definecolor{applegreen}{rgb}{0.55,0.71,0.0}
+\definecolor{awesome}{rgb}{1.0,0.13,0.32}
+\definecolor{azurecolor}{rgb}{0.0,0.5,1.0}
+\definecolor{darklavender}{rgb}{0.45,0.31,0.59}
+
+% Update this path to the selected versioned result directory.
+\newcommand{\figureonedata}{%
+results/figure_01_validation/20260922_COMMIT_HASH/figure_01_validation.dat}
 
 \begin{document}
-\begin{tikzpicture}
+\begin{tikzpicture}[font=\footnotesize]
 \begin{axis}[
-    xlabel={Eve-side SNR (dB)},
+    width=9.0cm,
+    height=6.1cm,
+    xmin=-10,
+    xmax=20,
+    ymin=0,
+    ymax=1,
+    xlabel={Eve-side SNR [dB]},
     ylabel={Posterior vulnerability},
-    grid=both,
-    legend pos=south east
+    xtick={-10,-5,...,20},
+    ytick={0,0.2,...,1},
+    xmajorgrids,
+    ymajorgrids,
+    legend cell align=left,
+    legend style={at={(0.02,0.98)},anchor=north west,font=\footnotesize},
 ]
-% Copy figure_01_validation.dat from data/results/ to Overleaf.
-% \addplot table[x=eve_snr_db,y=vulnerability_quadrature]
-%   {figure_01_validation.dat};
-% \addlegendentry{Quadrature}
-% \addplot table[x=eve_snr_db,y=vulnerability_monte_carlo]
-%   {figure_01_validation.dat};
-% \addlegendentry{Monte Carlo}
+
+% Theoretical quadrature curves
+\addplot[color=azurecolor,line width=0.8pt,solid]
+table[x=eve_snr_db,y=vulnerability_bpsk_theory]{\figureonedata};
+\addlegendentry{BPSK}
+
+\addplot[color=awesome,line width=0.8pt,dashed]
+table[x=eve_snr_db,y=vulnerability_qpsk_theory]{\figureonedata};
+\addlegendentry{QPSK}
+
+\addplot[color=applegreen!70!black,line width=0.8pt,dashdotted]
+table[x=eve_snr_db,y=vulnerability_8psk_theory]{\figureonedata};
+\addlegendentry{8PSK}
+
+\addplot[color=darklavender,line width=0.8pt,densely dotted]
+table[x=eve_snr_db,y=vulnerability_16qam_theory]{\figureonedata};
+\addlegendentry{16QAM}
+
+% Monte Carlo results: marks and confidence intervals, no legend entries
+\addplot+[
+    only marks,mark=o,mark size=1.6pt,color=azurecolor,
+    error bars/.cd,y dir=both,y explicit
+]
+table[
+    x=eve_snr_db,
+    y=vulnerability_bpsk_mc,
+    y error plus expr=\thisrow{vulnerability_bpsk_ci95_upper}
+                      -\thisrow{vulnerability_bpsk_mc},
+    y error minus expr=\thisrow{vulnerability_bpsk_mc}
+                       -\thisrow{vulnerability_bpsk_ci95_lower}
+]{\figureonedata};
+
+\addplot+[
+    only marks,mark=square*,mark size=1.35pt,color=awesome,
+    error bars/.cd,y dir=both,y explicit
+]
+table[
+    x=eve_snr_db,
+    y=vulnerability_qpsk_mc,
+    y error plus expr=\thisrow{vulnerability_qpsk_ci95_upper}
+                      -\thisrow{vulnerability_qpsk_mc},
+    y error minus expr=\thisrow{vulnerability_qpsk_mc}
+                       -\thisrow{vulnerability_qpsk_ci95_lower}
+]{\figureonedata};
+
+\addplot+[
+    only marks,mark=triangle*,mark size=1.6pt,color=applegreen!70!black,
+    error bars/.cd,y dir=both,y explicit
+]
+table[
+    x=eve_snr_db,
+    y=vulnerability_8psk_mc,
+    y error plus expr=\thisrow{vulnerability_8psk_ci95_upper}
+                      -\thisrow{vulnerability_8psk_mc},
+    y error minus expr=\thisrow{vulnerability_8psk_mc}
+                       -\thisrow{vulnerability_8psk_ci95_lower}
+]{\figureonedata};
+
+\addplot+[
+    only marks,mark=diamond*,mark size=1.5pt,color=darklavender,
+    error bars/.cd,y dir=both,y explicit
+]
+table[
+    x=eve_snr_db,
+    y=vulnerability_16qam_mc,
+    y error plus expr=\thisrow{vulnerability_16qam_ci95_upper}
+                      -\thisrow{vulnerability_16qam_mc},
+    y error minus expr=\thisrow{vulnerability_16qam_mc}
+                       -\thisrow{vulnerability_16qam_ci95_lower}
+]{\figureonedata};
+
 \end{axis}
 \end{tikzpicture}
 \end{document}

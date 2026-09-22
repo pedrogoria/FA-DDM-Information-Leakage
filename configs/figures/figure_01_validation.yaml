@@ -1,12 +1,16 @@
 figure:
   id: figure_01_validation
-  title: Quadrature and Monte Carlo validation
+  title: Quadrature and Monte Carlo validation for multiple modulations
 
 random:
   seed: 20260922
 
 system:
-  modulation: QPSK
+  modulations:
+    - BPSK
+    - QPSK
+    - 8PSK
+    - 16QAM
   number_of_ports: 8
   aperture_wavelengths: 1.0
   transmit_power: 1.0
