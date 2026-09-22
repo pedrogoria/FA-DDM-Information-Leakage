@@ -102,5 +102,6 @@ def save_dat(data, path, comments=None):
             sep=" ",
             index=False,
             float_format="%.10g",
+            na_rep="nan",
             lineterminator="\n",
         )
