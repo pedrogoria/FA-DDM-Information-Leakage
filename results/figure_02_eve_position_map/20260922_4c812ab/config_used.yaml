@@ -26,14 +26,14 @@ system:
 map:
   x_min_wavelengths: -20.0
   x_max_wavelengths: 20.0
-  x_points: 41
+  x_points: 11
   y_min_wavelengths: 5.0
   y_max_wavelengths: 45.0
-  y_points: 41
+  y_points: 11
   z_wavelengths: 0.0
 
 quadrature:
-  points_per_axis: 81
+  points_per_axis: 61
   noise_margin_sigma: 5.0
   batch_size: 20000
 

@@ -1,18 +1,21 @@
-# Step 11: Three-dimensional receiver geometry
+# Step 13: Fixed-aperture port-density saturation
 
-Place the files as follows:
+Place files:
 
-- `geometry_step11.py` -> `fa_ddm/geometry.py`
-- `test_geometry.py` -> `tests/test_geometry.py`
+- `figure_03_port_density_saturation.yaml` -> `configs/figures/figure_03_port_density_saturation.yaml`
+- `run_figure_03.py` -> `scripts/run_figure_03.py`
+- `figure_03_port_density_saturation.tex` -> `overleaf/figures/figure_03_port_density_saturation.tex`
+
+Quick test settings may be reduced to 5 fading realizations, 41 quadrature points per axis, and 1000 Monte Carlo trials per realization.
 
 Run:
 
 ```powershell
-python -m pytest tests\test_geometry.py -v
-python -m pytest tests -v
+python scripts\run_figure_03.py
 ```
 
-Expected result for the new file: six tests pass.
+Copy the selected data file to:
 
-This module converts Bob and Eve positions into distance and direction. It is
-the basis for future vulnerability maps over Eve's 3-D position.
+```text
+fig/data/figure_03_port_density_saturation.dat
+```
