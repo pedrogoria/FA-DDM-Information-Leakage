@@ -1,3 +1,7 @@
+# Experiment: figure_01_validation
+# Modulation: QPSK
+# Columns use descriptive names and are intended for PGFPlots.
+# Monte Carlo confidence bounds are exported for validation only.
 eve_snr_db vulnerability_quadrature vulnerability_monte_carlo mc_ci95_lower mc_ci95_upper prior_vulnerability
 -10 0.2638423741 0.2669 0.2641583503 0.2696416497 0.25
 -5 0.272865928 0.27102 0.2682650448 0.2737749552 0.25
