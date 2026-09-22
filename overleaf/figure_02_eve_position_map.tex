@@ -1,0 +1,60 @@
+\documentclass{standalone}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\usepgfplotslibrary{groupplots}
+\usetikzlibrary{plotmarks,calc,positioning,arrows,shadows}
+\pgfplotsset{compat=newest}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{siunitx}
+
+\newcommand{\figuretwodata}{fig/data/figure_02_eve_position_map.dat}
+
+\begin{document}
+\begin{tikzpicture}[font=\footnotesize]
+\begin{groupplot}[
+    group style={group size=2 by 1,horizontal sep=1.25cm},
+    width=7.2cm,
+    height=6.2cm,
+    view={0}{90},
+    xlabel={$x_{\mathrm E}/\lambda$},
+    ylabel={$y_{\mathrm E}/\lambda$},
+    axis equal image,
+    point meta min=0,
+    point meta max=1,
+    colorbar,
+    colorbar style={ylabel={Posterior vulnerability}},
+]
+
+\nextgroupplot[title={QPSK}]
+\addplot3[
+    surf,
+    shader=flat corner,
+    mesh/cols=41,
+]
+table[
+    x=eve_x_lambda,
+    y=eve_y_lambda,
+    z=vulnerability_qpsk,
+    meta=vulnerability_qpsk
+]{\figuretwodata};
+\addplot[only marks,mark=star,mark size=3pt,color=red]
+coordinates {(0,20)};
+
+\nextgroupplot[title={16QAM}]
+\addplot3[
+    surf,
+    shader=flat corner,
+    mesh/cols=41,
+]
+table[
+    x=eve_x_lambda,
+    y=eve_y_lambda,
+    z=vulnerability_16qam,
+    meta=vulnerability_16qam
+]{\figuretwodata};
+\addplot[only marks,mark=star,mark size=3pt,color=red]
+coordinates {(0,20)};
+
+\end{groupplot}
+\end{tikzpicture}
+\end{document}

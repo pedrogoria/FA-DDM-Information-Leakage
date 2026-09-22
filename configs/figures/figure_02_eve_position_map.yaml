@@ -1,0 +1,45 @@
+figure:
+  id: figure_02_eve_position_map
+  title: Vulnerability over Eve position
+
+random:
+  seed: 20260922
+
+system:
+  modulations:
+    - QPSK
+    - 16QAM
+  number_of_ports: 8
+  aperture_wavelengths: 1.0
+  aperture_axis: x
+  transmit_power: 1.0
+  noise_variance_eve: 0.1
+  port_selection: uniform
+  bob_position_wavelengths: [0.0, 20.0, 0.0]
+  large_scale_gain_bob: 1.0
+  rician_factor_bob: 5.0
+  rician_factor_eve: 20.0
+  eve_reference_gain: 1.0
+  eve_reference_distance_wavelengths: 20.0
+  path_loss_exponent_eve: 2.0
+
+map:
+  x_min_wavelengths: -20.0
+  x_max_wavelengths: 20.0
+  x_points: 11
+  y_min_wavelengths: 5.0
+  y_max_wavelengths: 45.0
+  y_points: 11
+  z_wavelengths: 0.0
+
+quadrature:
+  points_per_axis: 61
+  noise_margin_sigma: 5.0
+  batch_size: 20000
+
+output:
+  results_root: results
+  experiment_name: figure_02_eve_position_map
+  dat_file: figure_02_eve_position_map.dat
+  pdf_file: figure_02_eve_position_map_preview.pdf
+  config_copy: config_used.yaml
