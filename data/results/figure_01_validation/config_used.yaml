@@ -6,7 +6,7 @@ random:
   seed: 20260922
 
 system:
-  modulation: QPSK
+  modulation: QPSK  # Options: BPSK, QPSK, 8PSK, 16PSK, 16QAM, 64QAM
   number_of_ports: 8
   aperture_wavelengths: 1.0
   transmit_power: 1.0
@@ -31,8 +31,7 @@ monte_carlo:
   confidence_level: 0.95
 
 output:
-  results_root: results
-  experiment_name: figure_01_validation
+  directory: data/results/figure_01_validation
   dat_file: figure_01_validation.dat
-  pdf_file: figure_01_validation_preview.pdf
+  pdf_file: figure_01_validation.pdf
   config_copy: config_used.yaml
