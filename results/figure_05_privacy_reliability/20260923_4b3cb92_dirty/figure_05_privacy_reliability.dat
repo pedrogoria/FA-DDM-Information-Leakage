@@ -1,0 +1,9 @@
+# Optimized privacy-reliability tradeoff for one channel realization.
+# Uniform benchmark columns are repeated for PGFPlots convenience.
+reliability_threshold optimized_vulnerability achieved_bob_error uniform_vulnerability uniform_bob_error
+0.005 0.4503264142 0.005 0.4425672475 0.107817593
+0.01 0.4423967852 0.01 0.4425672475 0.107817593
+0.02 0.4270203552 0.02 0.4425672475 0.107817593
+0.04 0.4050229882 0.04 0.4425672475 0.107817593
+0.08 0.3923647513 0.0712837336 0.4425672475 0.107817593
+0.12 0.3923647513 0.0712837336 0.4425672475 0.107817593
