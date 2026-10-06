@@ -30,6 +30,34 @@ def threshold_key(value):
     return str(float(value)).replace(".", "p")
 
 
+def feasible_value(value, bob_error, maximum_bob_error, tolerance=1e-12):
+    """Return a benchmark value when feasible and NaN otherwise."""
+    if bob_error <= maximum_bob_error + tolerance:
+        return float(value)
+    return np.nan
+
+
+def evaluate_vulnerability(
+    symbols,
+    effective_channel,
+    rho,
+    priors,
+    system,
+    quadrature,
+):
+    """Evaluate posterior vulnerability for a fixed port distribution."""
+    return quadrature_vulnerability(
+        symbols=symbols,
+        effective_eve_channel=effective_channel,
+        port_probabilities=rho,
+        symbol_probabilities=priors,
+        transmit_power=float(system["transmit_power"]),
+        noise_variance=float(system["noise_variance_eve"]),
+        points_per_axis=int(quadrature["points_per_axis"]),
+        noise_margin_sigma=float(quadrature["noise_margin_sigma"]),
+    )
+
+
 def run(config_path="configs/figures/figure_05_privacy_reliability.yaml"):
     """Run the privacy-reliability tradeoff experiment."""
     config_path = Path(config_path)
@@ -84,8 +112,8 @@ def run(config_path="configs/figures/figure_05_privacy_reliability.yaml"):
         for value in tradeoff["selected_thresholds_for_probabilities"]
     ]
 
-    vulnerabilities = []
-    achieved_errors = []
+    optimized_vulnerabilities = []
+    optimized_bob_errors = []
     solutions = {}
 
     for threshold in thresholds:
@@ -100,8 +128,8 @@ def run(config_path="configs/figures/figure_05_privacy_reliability.yaml"):
             points_per_axis=int(quadrature["points_per_axis"]),
             noise_margin_sigma=float(quadrature["noise_margin_sigma"]),
         )
-        vulnerabilities.append(result["vulnerability"])
-        achieved_errors.append(result["bob_error"])
+        optimized_vulnerabilities.append(result["vulnerability"])
+        optimized_bob_errors.append(result["bob_error"])
         solutions[float(threshold)] = result["rho"]
 
         print(
@@ -112,18 +140,109 @@ def run(config_path="configs/figures/figure_05_privacy_reliability.yaml"):
             )
         )
 
+    optimized_vulnerabilities = np.asarray(
+        optimized_vulnerabilities,
+        dtype=float,
+    )
+    optimized_bob_errors = np.asarray(optimized_bob_errors, dtype=float)
+
     uniform_rho = np.full(number_of_ports, 1.0 / number_of_ports)
-    uniform_vulnerability = quadrature_vulnerability(
-        symbols=symbols,
-        effective_eve_channel=effective_channel,
-        port_probabilities=uniform_rho,
-        symbol_probabilities=priors,
-        transmit_power=float(system["transmit_power"]),
-        noise_variance=float(system["noise_variance_eve"]),
-        points_per_axis=int(quadrature["points_per_axis"]),
-        noise_margin_sigma=float(quadrature["noise_margin_sigma"]),
+    uniform_vulnerability = evaluate_vulnerability(
+        symbols,
+        effective_channel,
+        uniform_rho,
+        priors,
+        system,
+        quadrature,
     )
     uniform_bob_error = float(np.dot(uniform_rho, bob_errors))
+
+    reliability_weights = np.abs(bob_channel) ** 2
+    reliability_weighted_rho = reliability_weights / np.sum(reliability_weights)
+    reliability_weighted_vulnerability = evaluate_vulnerability(
+        symbols,
+        effective_channel,
+        reliability_weighted_rho,
+        priors,
+        system,
+        quadrature,
+    )
+    reliability_weighted_bob_error = float(
+        np.dot(reliability_weighted_rho, bob_errors)
+    )
+
+    best_bob_port = int(np.argmax(np.abs(bob_channel) ** 2))
+    best_bob_rho = np.zeros(number_of_ports)
+    best_bob_rho[best_bob_port] = 1.0
+    best_bob_vulnerability = evaluate_vulnerability(
+        symbols,
+        effective_channel,
+        best_bob_rho,
+        priors,
+        system,
+        quadrature,
+    )
+    best_bob_error = float(bob_errors[best_bob_port])
+
+    fixed_port_vulnerabilities = np.empty(number_of_ports)
+    for port_index in range(number_of_ports):
+        fixed_port_rho = np.zeros(number_of_ports)
+        fixed_port_rho[port_index] = 1.0
+        fixed_port_vulnerabilities[port_index] = evaluate_vulnerability(
+            symbols,
+            effective_channel,
+            fixed_port_rho,
+            priors,
+            system,
+            quadrature,
+        )
+
+    best_privacy_port = int(np.argmin(fixed_port_vulnerabilities))
+    best_privacy_vulnerability = float(
+        fixed_port_vulnerabilities[best_privacy_port]
+    )
+    best_privacy_error = float(bob_errors[best_privacy_port])
+
+    uniform_feasible = np.asarray(
+        [
+            feasible_value(
+                uniform_vulnerability,
+                uniform_bob_error,
+                threshold,
+            )
+            for threshold in thresholds
+        ]
+    )
+    reliability_weighted_feasible = np.asarray(
+        [
+            feasible_value(
+                reliability_weighted_vulnerability,
+                reliability_weighted_bob_error,
+                threshold,
+            )
+            for threshold in thresholds
+        ]
+    )
+    best_bob_feasible = np.asarray(
+        [
+            feasible_value(
+                best_bob_vulnerability,
+                best_bob_error,
+                threshold,
+            )
+            for threshold in thresholds
+        ]
+    )
+    best_privacy_feasible = np.asarray(
+        [
+            feasible_value(
+                best_privacy_vulnerability,
+                best_privacy_error,
+                threshold,
+            )
+            for threshold in thresholds
+        ]
+    )
 
     run_directory = prepare_experiment_directory(
         output["results_root"],
@@ -137,9 +256,10 @@ def run(config_path="configs/figures/figure_05_privacy_reliability.yaml"):
     save_dat(
         {
             "reliability_threshold": thresholds,
-            "optimized_vulnerability": vulnerabilities,
-            "achieved_bob_error": achieved_errors,
-            "uniform_vulnerability": np.full(
+            "optimized_vulnerability": optimized_vulnerabilities,
+            "optimized_bob_error": optimized_bob_errors,
+            "uniform_vulnerability_feasible": uniform_feasible,
+            "uniform_vulnerability_all": np.full(
                 thresholds.size,
                 uniform_vulnerability,
             ),
@@ -147,11 +267,45 @@ def run(config_path="configs/figures/figure_05_privacy_reliability.yaml"):
                 thresholds.size,
                 uniform_bob_error,
             ),
+            "reliability_weighted_vulnerability_feasible": (
+                reliability_weighted_feasible
+            ),
+            "reliability_weighted_vulnerability_all": np.full(
+                thresholds.size,
+                reliability_weighted_vulnerability,
+            ),
+            "reliability_weighted_bob_error": np.full(
+                thresholds.size,
+                reliability_weighted_bob_error,
+            ),
+            "best_bob_vulnerability_feasible": best_bob_feasible,
+            "best_bob_vulnerability_all": np.full(
+                thresholds.size,
+                best_bob_vulnerability,
+            ),
+            "best_bob_error": np.full(
+                thresholds.size,
+                best_bob_error,
+            ),
+            "best_privacy_vulnerability_feasible": best_privacy_feasible,
+            "best_privacy_vulnerability_all": np.full(
+                thresholds.size,
+                best_privacy_vulnerability,
+            ),
+            "best_privacy_error": np.full(
+                thresholds.size,
+                best_privacy_error,
+            ),
         },
         tradeoff_path,
         comments=[
-            "Optimized privacy-reliability tradeoff for one channel realization.",
-            "Uniform benchmark columns are repeated for PGFPlots convenience.",
+            "Privacy-reliability tradeoff for one channel realization.",
+            "Feasible benchmark columns contain NaN below their Bob-error thresholds.",
+            "Columns ending in _all retain unconstrained benchmark values.",
+            "Best-Bob and best-privacy port indices are one-based: {0} and {1}.".format(
+                best_bob_port + 1,
+                best_privacy_port + 1,
+            ),
         ],
     )
 
@@ -159,7 +313,9 @@ def run(config_path="configs/figures/figure_05_privacy_reliability.yaml"):
         "port_index": np.arange(1, number_of_ports + 1),
         "port_position_lambda": positions,
         "bob_port_error": bob_errors,
+        "fixed_port_vulnerability": fixed_port_vulnerabilities,
         "rho_uniform": uniform_rho,
+        "rho_reliability_weighted": reliability_weighted_rho,
     }
     for threshold in selected_thresholds:
         probability_data[
@@ -170,7 +326,9 @@ def run(config_path="configs/figures/figure_05_privacy_reliability.yaml"):
         probability_data,
         probability_path,
         comments=[
-            "Optimized port probabilities for selected reliability thresholds."
+            "Optimized and benchmark port probabilities.",
+            "Best-Bob port index: {0}.".format(best_bob_port + 1),
+            "Best-privacy port index: {0}.".format(best_privacy_port + 1),
         ],
     )
     copy_configuration(
@@ -182,16 +340,41 @@ def run(config_path="configs/figures/figure_05_privacy_reliability.yaml"):
 
     axes[0].plot(
         thresholds,
-        vulnerabilities,
+        optimized_vulnerabilities,
         marker="o",
         color="tab:blue",
         label="Optimized",
     )
-    axes[0].axhline(
-        uniform_vulnerability,
-        color="black",
+    axes[0].plot(
+        thresholds,
+        uniform_feasible,
         linestyle="--",
+        color="black",
         label="Uniform",
+    )
+    axes[0].plot(
+        thresholds,
+        reliability_weighted_feasible,
+        linestyle="-.",
+        marker="s",
+        color="tab:green",
+        label="Reliability-weighted",
+    )
+    axes[0].plot(
+        thresholds,
+        best_bob_feasible,
+        linestyle=":",
+        marker="^",
+        color="tab:red",
+        label="Best-Bob fixed port",
+    )
+    axes[0].plot(
+        thresholds,
+        best_privacy_feasible,
+        linestyle=(0, (5, 2)),
+        marker="D",
+        color="tab:purple",
+        label="Best-privacy fixed port",
     )
     axes[0].set_xlabel("Bob reliability threshold")
     axes[0].set_ylabel("Posterior vulnerability")
@@ -215,14 +398,30 @@ def run(config_path="configs/figures/figure_05_privacy_reliability.yaml"):
     figure.savefig(pdf_path, bbox_inches="tight")
     plt.close(figure)
 
+    print("Best-Bob port: {0}".format(best_bob_port + 1))
+    print("Best-privacy port: {0}".format(best_privacy_port + 1))
+    print("Uniform Bob error: {0:.6f}".format(uniform_bob_error))
+    print(
+        "Reliability-weighted Bob error: {0:.6f}".format(
+            reliability_weighted_bob_error
+        )
+    )
+    print("Best-Bob error: {0:.6f}".format(best_bob_error))
+    print("Best-privacy error: {0:.6f}".format(best_privacy_error))
     print("Tradeoff data saved to: {0}".format(tradeoff_path.resolve()))
     print("Probability data saved to: {0}".format(probability_path.resolve()))
     print("Preview saved to: {0}".format(pdf_path.resolve()))
 
     return {
-        "vulnerability": np.asarray(vulnerabilities),
-        "bob_error": np.asarray(achieved_errors),
+        "vulnerability": optimized_vulnerabilities,
+        "bob_error": optimized_bob_errors,
         "solutions": solutions,
+        "uniform_vulnerability": uniform_vulnerability,
+        "reliability_weighted_vulnerability": reliability_weighted_vulnerability,
+        "best_bob_vulnerability": best_bob_vulnerability,
+        "best_privacy_vulnerability": best_privacy_vulnerability,
+        "best_bob_port": best_bob_port,
+        "best_privacy_port": best_privacy_port,
     }
 
 
