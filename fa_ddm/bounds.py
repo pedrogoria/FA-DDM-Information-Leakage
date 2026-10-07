@@ -1,4 +1,246 @@
-"""Finite-SNR vulnerability bounds for FA-assisted DDM."""
+"""
+Finite-SNR vulnerability bounds for fluid-antenna-assisted dynamic
+directional modulation.
+
+Author
+------
+Pedro E. Goria Silva
+
+Module
+------
+fa_ddm.bounds
+
+Purpose
+-------
+This module implements numerical tools for evaluating analytical bounds on
+Eve's posterior Bayes vulnerability in fluid-antenna-assisted dynamic
+directional modulation (FA-DDM).
+
+In the considered system, Alice activates one fluid-antenna port per channel
+use and applies a port-dependent phase coefficient that compensates Bob's
+instantaneous channel phase. Because Eve does not know the active-port
+realization before making a symbol decision, each confidential symbol induces
+a Gaussian-mixture observation at Eve.
+
+The functions in this module quantify the distinguishability of these
+secret-conditioned Gaussian mixtures and evaluate:
+
+1. the exact finite-grid posterior vulnerability by deterministic quadrature;
+2. pairwise total-variation distances relative to a reference symbol;
+3. the finite-SNR total-variation lower bound;
+4. the finite-SNR total-variation upper bound;
+5. the permutation-based Gaussian-component overlap certificate;
+6. the corresponding permutation-based vulnerability upper bound.
+
+The implementation is intended to support the analytical and numerical results
+of the FA-DDM information-leakage study and to generate reproducible data for
+the associated manuscript figures.
+
+Mathematical setting
+--------------------
+Let S be a uniformly distributed confidential symbol taking values in an
+M-ary constellation. For each symbol s_m, Eve observes a conditional density
+
+    p(y | s_m)
+        = sum_n rho_n CN(
+              y;
+              sqrt(P_t) g_n s_m,
+              sigma_E^2
+          ),
+
+where:
+
+    rho_n       is the activation probability of port n;
+    g_n         is Eve's effective channel coefficient for port n;
+    P_t         is the transmit power;
+    sigma_E^2   is Eve's complex-noise variance.
+
+For a uniform secret, Eve's posterior vulnerability is
+
+    V_E(rho)
+        = (1 / M) integral_C max_m p(y | s_m) dy.
+
+For a fixed reference symbol s_j, the pairwise total-variation distance is
+
+    delta_{m,j}(rho)
+        = (1 / 2) integral_C
+          |p(y | s_m) - p(y | s_j)| dy.
+
+The finite-SNR bounds evaluated by this module are
+
+    (1 / M) [1 + max_{m != j} delta_{m,j}]
+        <= V_E(rho)
+        <=
+    (1 / M) [1 + sum_{m != j} delta_{m,j}].
+
+For binary signaling, the two expressions coincide and provide the exact
+posterior vulnerability.
+
+Permutation-based overlap certificate
+-------------------------------------
+For each pair of symbols (s_m, s_j), the module also evaluates a
+component-matching certificate of the form
+
+    Gamma_{m,j}(rho)
+        = max_tau sum_n sqrt(rho_n rho_{tau(n)})
+          exp(
+              -P_t |g_n s_m - g_{tau(n)} s_j|^2
+              / (4 sigma_E^2)
+          ).
+
+The maximizing permutation is obtained as a linear assignment problem using
+``scipy.optimize.linear_sum_assignment``. This avoids explicit enumeration of
+all N! port permutations.
+
+The resulting vulnerability upper bound is
+
+    V_E(rho)
+        <= (1 / M) [
+               1
+               + sum_{m != j}
+                 sqrt(1 - Gamma_{m,j}(rho)^2)
+           ].
+
+Numerical methodology
+---------------------
+The exact vulnerability and total-variation distances are evaluated on the
+same two-dimensional trapezoidal quadrature grid over Eve's complex
+observation plane. Reusing the same grid ensures that differences between the
+exact value and the total-variation bounds are not caused by inconsistent
+integration domains or quadrature resolutions.
+
+The integration region is selected to contain all Gaussian-mixture centroids
+with a configurable noise-dependent margin. Likelihood evaluation is performed
+in batches to limit peak memory usage.
+
+The permutation-based bound does not require numerical integration of density
+differences. It depends directly on the port probabilities, conditional
+centroids, noise variance, and optimal one-to-one component matching.
+
+Assumptions
+-----------
+The implemented bounds assume that:
+
+- the confidential symbol has a uniform prior distribution;
+- the symbol alphabet contains at least two symbols;
+- the port-selection probabilities form a valid probability vector;
+- the noise variance is strictly positive;
+- all Gaussian components have the same complex-noise variance;
+- Eve knows the effective channel coefficients and port-selection law;
+- the reference-symbol index follows zero-based Python indexing;
+- posterior vulnerability is defined for optimal one-guess identity recovery.
+
+The upper bounds may exceed one before post-processing because the bounds are
+analytical inequalities rather than probability-normalized approximations.
+For plotting purposes, this module also returns capped versions computed as
+
+    min(1, analytical_upper_bound).
+
+The uncapped values are retained so that the analytical expressions can be
+inspected without modification.
+
+Public functions
+----------------
+pairwise_total_variation_bounds
+    Evaluates the exact quadrature vulnerability, pairwise total-variation
+    distances, and the corresponding finite-SNR lower and upper bounds.
+
+permutation_overlap_certificate
+    Computes the optimized component-matching certificate Gamma_{m,j} for one
+    symbol pair by solving a linear assignment problem.
+
+permutation_vulnerability_bound
+    Aggregates the pairwise overlap certificates into the permutation-based
+    vulnerability upper bound for a selected reference symbol.
+
+Dependencies
+------------
+numpy
+    Array manipulation, validation, quadrature accumulation, and numerical
+    operations.
+
+scipy.optimize.linear_sum_assignment
+    Polynomial-time solution of the maximum-weight component-matching problem,
+    implemented by minimizing the negative overlap matrix.
+
+fa_ddm.quadrature
+    Construction of the integration region and rectangular quadrature grid.
+
+fa_ddm.vulnerability
+    Mixture-centroid construction, probability-vector validation, and weighted
+    symbol-likelihood evaluation.
+
+Returned quantities
+-------------------
+The finite-SNR routine returns a dictionary containing:
+
+    vulnerability
+        Exact posterior vulnerability evaluated on the quadrature grid.
+
+    total_variation
+        Vector of total-variation distances between every symbol-conditioned
+        density and the selected reference-symbol density.
+
+    lower_bound
+        Finite-SNR total-variation lower bound.
+
+    upper_bound
+        Raw finite-SNR total-variation upper bound.
+
+    upper_bound_capped
+        Upper bound limited to the probability range [0, 1].
+
+    bounds
+        Rectangular integration limits used by the quadrature calculation.
+
+The permutation-based routine returns:
+
+    gamma
+        Vector of optimized component-overlap certificates relative to the
+        selected reference symbol.
+
+    upper_bound
+        Raw permutation-based vulnerability upper bound.
+
+    upper_bound_capped
+        Permutation-based upper bound limited to [0, 1].
+
+Reproducibility
+---------------
+This module contains no random-number generation. Its outputs are deterministic
+for fixed symbols, channels, probabilities, transmit power, noise variance,
+quadrature settings, and reference-symbol index.
+
+The channel realization, random seed, SNR sweep, and numerical resolution are
+defined by the corresponding experiment runner and YAML configuration.
+
+Notes
+-----
+This module provides numerical evaluations of the analytical expressions. It
+does not replace the exact Gaussian-mixture likelihood model with a surrogate
+detector, a nearest-neighbor approximation, or a conventional symbol-error
+metric.
+
+When the quadrature resolution or integration margin is changed, convergence
+of the exact vulnerability and total-variation distances should be verified
+before the generated values are used in final manuscript figures.
+
+See Also
+--------
+fa_ddm.vulnerability
+    Gaussian-mixture likelihoods and Monte Carlo vulnerability estimation.
+
+fa_ddm.quadrature
+    Deterministic integration over Eve's complex observation plane.
+
+fa_ddm.optimization
+    Privacy-aware optimization of the fluid-antenna port-selection
+    probabilities.
+
+scripts.run_figure_07
+    Reproducible experiment runner for the vulnerability-bound validation
+    figure.
+"""
 
 import numpy as np
 from scipy.optimize import linear_sum_assignment
