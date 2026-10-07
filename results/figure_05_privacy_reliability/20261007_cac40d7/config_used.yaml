@@ -1,0 +1,36 @@
+figure:
+  id: figure_05_privacy_reliability
+  title: Privacy-reliability tradeoff and optimized port probabilities
+
+random:
+  seed: 20260922
+
+system:
+  modulation: QPSK
+  number_of_ports: 8
+  aperture_wavelengths: 1.0
+  transmit_power: 1.0
+  noise_variance_bob: 0.1
+  noise_variance_eve: 0.1
+  bob_angle_deg: 0.0
+  eve_angle_deg: 30.0
+  large_scale_gain_bob: 1.0
+  large_scale_gain_eve: 1.0
+  rician_factor_bob: 5.0
+  rician_factor_eve: 5.0
+
+tradeoff:
+  reliability_thresholds: [0.005, 0.01, 0.02, 0.04, 0.08, 0.12]
+  selected_thresholds_for_probabilities: [0.01, 0.04, 0.12]
+
+quadrature:
+  points_per_axis: 61
+  noise_margin_sigma: 5.0
+
+output:
+  results_root: results
+  experiment_name: figure_05_privacy_reliability
+  dat_file: figure_05_privacy_reliability.dat
+  probabilities_dat_file: figure_05_port_probabilities.dat
+  pdf_file: figure_05_privacy_reliability_preview.pdf
+  config_copy: config_used.yaml
